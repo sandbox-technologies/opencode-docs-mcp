@@ -1,4 +1,5 @@
-<img width="15712" height="3776" alt="logo-tshirt (5)" src="https://github.com/user-attachments/assets/bb199bd6-3958-4300-bb5f-3e01ca64867a" />
+
+<img width="7856" height="1888" alt="logo-tshirt (6)" src="https://github.com/user-attachments/assets/1b39d3b0-dc0d-4f2a-9e82-ecc28232e906" />
 
 # OpenCode Docs MCP Server
 
