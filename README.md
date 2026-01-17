@@ -1,5 +1,8 @@
 # OpenCode Docs MCP Server
 
+[![npm version](https://badge.fury.io/js/opencode-docs-mcp.svg)](https://www.npmjs.com/package/opencode-docs-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Mintlify-style MCP server that enables AI models to search and browse the [OpenCode](https://opencode.ai/docs/) documentation.
 
 ## ✨ Features
@@ -9,14 +12,29 @@ A Mintlify-style MCP server that enables AI models to search and browse the [Ope
 - **Page retrieval** with full markdown content
 - **Auto-discovery** of documentation pages from navigation
 - **Auto-updating index** that refreshes every 24 hours
+- **Mintlify-style** tool descriptions and responses
 
 ---
 
-## 🚀 Quick Start (Choose One)
+## 🚀 Quick Start
 
-### Option 1: NPX (Easiest - No Installation)
+### Option 1: Remote Server (Recommended - No Installation)
 
-Just add to your MCP config:
+Just add a URL to your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "opencode-docs": {
+      "name": "opencode-docs",
+      "url": "https://tryinspector.com/api/opencode-docs/mcp",
+      "headers": {}
+    }
+  }
+}
+```
+
+### Option 2: NPX (Local)
 
 ```json
 {
@@ -33,7 +51,7 @@ Just add to your MCP config:
 > ```bash
 > # Find your npx path
 > which npx
-> # Example output: /Users/you/.nvm/versions/node/v20.19.5/bin/npx
+> # Example: /Users/you/.nvm/versions/node/v20.19.5/bin/npx
 > ```
 > Then use the full path in your config:
 > ```json
@@ -47,13 +65,11 @@ Just add to your MCP config:
 > }
 > ```
 
-### Option 2: Global Install
+### Option 3: Global Install
 
 ```bash
 npm install -g opencode-docs-mcp
 ```
-
-Then add to config:
 
 ```json
 {
@@ -63,20 +79,6 @@ Then add to config:
     }
   }
 }
-```
-
-> ⚠️ **Using nvm/fnm/volta?** Use the full path:
-> ```bash
-> which opencode-docs-mcp
-> # Use that path in your config
-> ```
-
-### Option 3: Remote Server (Hosted)
-
-If you deploy to Vercel, users can access via HTTP API:
-
-```
-https://your-deployment.vercel.app/api/search?q=mcp+servers
 ```
 
 ---
@@ -91,8 +93,9 @@ Add to `~/.cursor/mcp.json`:
 {
   "mcpServers": {
     "opencode-docs": {
-      "command": "npx",
-      "args": ["-y", "opencode-docs-mcp"]
+      "name": "opencode-docs",
+      "url": "https://tryinspector.com/api/opencode-docs/mcp",
+      "headers": {}
     }
   }
 }
@@ -106,8 +109,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "opencode-docs": {
-      "command": "npx",
-      "args": ["-y", "opencode-docs-mcp"]
+      "url": "https://tryinspector.com/api/opencode-docs/mcp"
     }
   }
 }
@@ -121,21 +123,8 @@ Add to your `opencode.json`:
 {
   "mcp": {
     "opencode-docs": {
-      "type": "local",
-      "command": ["npx", "-y", "opencode-docs-mcp"]
-    }
-  }
-}
-```
-
-### Cline / Continue / Other MCP Clients
-
-```json
-{
-  "mcpServers": {
-    "opencode-docs": {
-      "command": "npx",
-      "args": ["-y", "opencode-docs-mcp"]
+      "type": "remote",
+      "url": "https://tryinspector.com/api/opencode-docs/mcp"
     }
   }
 }
@@ -147,11 +136,9 @@ Add to your `opencode.json`:
 
 | Tool | Description |
 |------|-------------|
-| `search_opencode_docs` | Search docs by query, returns relevant pages with snippets |
-| `get_opencode_doc_page` | Get full content of a specific documentation page |
-| `list_opencode_docs_by_category` | List all pages in a category (Usage, Configure, etc.) |
-| `list_opencode_doc_categories` | List all available documentation categories |
-| `browse_opencode_docs` | Get full table of contents for the docs |
+| `SearchOpenCodeDocs` | Search docs by query, returns relevant pages with contextual snippets and links |
+| `GetOpenCodeDocPage` | Get full content of a specific documentation page by path |
+| `BrowseOpenCodeDocs` | Get complete table of contents with all categories and pages |
 
 ---
 
@@ -166,33 +153,56 @@ Add to your `opencode.json`:
 
 ---
 
-## 🌐 Deploy Your Own (Vercel)
+## 📝 Example Usage
 
-1. Clone or fork this repo
-2. Install Vercel CLI: `npm i -g vercel`
-3. Deploy: `vercel --prod`
+Once connected, AI models can use the tools like:
 
-Users can then access:
-- `GET /api/search?q=query` - Search documentation
-- `GET /api/page?path=/docs/mcp-servers/` - Get page content
-- `GET /api/list` - List all pages
+```
+User: "How do I configure MCP servers in OpenCode?"
+
+AI calls: SearchOpenCodeDocs({ query: "configure MCP servers" })
+
+Returns:
+### 1. [MCP servers](https://opencode.ai/docs/mcp-servers/)
+**Category:** Configure
+
+Add external tools to OpenCode using the Model Context Protocol...
+```
+
+---
+
+## 🌐 Self-Hosting
+
+### Deploy to Vercel
+
+The remote server endpoint can be added to any Next.js project. See the source for the API route implementation.
+
+### Run Locally
+
+```bash
+git clone https://github.com/anthropics/opencode-docs-mcp
+cd opencode-docs-mcp
+npm install
+npm run build
+npm run scrape  # Pre-populate the docs index
+npm start
+```
 
 ---
 
 ## 🔧 Development
 
 ```bash
-# Clone
-git clone https://github.com/your-username/opencode-docs-mcp
-cd opencode-docs-mcp
-
-# Install
+# Install dependencies
 npm install
 
 # Build
 npm run build
 
-# Scrape docs
+# Watch mode
+npm run dev
+
+# Re-scrape docs
 npm run scrape
 
 # Run locally
@@ -201,35 +211,19 @@ npm start
 
 ---
 
-## 📝 Example Usage
-
-Once connected, AI models can use the tools like:
-
-```
-User: "Search the OpenCode docs for how to configure MCP servers"
-
-AI calls: search_opencode_docs({ query: "configure MCP servers" })
-
-Returns: 
-- MCP servers (/docs/mcp-servers/) - Relevance: 3.50
-  "Add external tools to OpenCode using the Model Context Protocol..."
-- Config (/docs/config/) - Relevance: 2.00
-- LSP Servers (/docs/lsp/) - Relevance: 1.50
-```
-
----
-
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Make your changes
-3. Submit a PR
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-MIT
+MIT - see [LICENSE](LICENSE) for details.
 
 ---
 
@@ -238,3 +232,4 @@ MIT
 - [OpenCode Documentation](https://opencode.ai/docs/)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 - [OpenCode GitHub](https://github.com/anomalyco/opencode)
+- [npm Package](https://www.npmjs.com/package/opencode-docs-mcp)

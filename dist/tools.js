@@ -1,52 +1,62 @@
 import { z } from 'zod';
-import { searchDocs, searchByCategory, getPageByPath, listCategories, listAllPages } from './search.js';
+import { searchDocs, getPageByPath, listCategories, listAllPages } from './search.js';
+// Mintlify-style tool definitions with detailed descriptions
+const TOOL_DEFINITIONS = {
+    SearchOpenCodeDocs: {
+        name: 'SearchOpenCodeDocs',
+        description: 'Search across the OpenCode knowledge base to find relevant information, configuration examples, CLI commands, and guides. Use this tool when you need to answer questions about OpenCode, find specific documentation, understand how features work, or locate implementation details for MCP servers, agents, tools, themes, and more. The search returns contextual content with titles and direct links to the documentation pages.',
+        operationId: 'OpenCodeDefaultSearch',
+    },
+    GetOpenCodeDocPage: {
+        name: 'GetOpenCodeDocPage',
+        description: 'Retrieve the full content of a specific OpenCode documentation page by its path. Use this when you need complete information from a known documentation page, such as /docs/mcp-servers/ for MCP configuration or /docs/agents/ for agent setup.',
+        operationId: 'OpenCodeGetPage',
+    },
+    BrowseOpenCodeDocs: {
+        name: 'BrowseOpenCodeDocs',
+        description: 'Get a complete overview of the OpenCode documentation structure including all categories and pages. Use this to understand what documentation is available or to help users navigate to the right section.',
+        operationId: 'OpenCodeBrowse',
+    },
+};
 export function registerDocTools(server, getIndex) {
-    // Search docs tool
-    server.tool('search_opencode_docs', 'Search the OpenCode documentation for relevant information. Use this to find docs about configuration, usage, MCP servers, agents, and more.', {
-        query: z.string().describe('Search query - what you want to find in the docs'),
-        limit: z.number().optional().default(5).describe('Maximum number of results to return'),
-    }, async ({ query, limit }) => {
+    // Search docs tool (Mintlify-style)
+    server.tool(TOOL_DEFINITIONS.SearchOpenCodeDocs.name, TOOL_DEFINITIONS.SearchOpenCodeDocs.description, {
+        query: z.string().describe('A query to search the OpenCode documentation with. Be specific for better results.'),
+    }, async ({ query }) => {
         const index = getIndex();
         if (!index) {
             return {
                 content: [{
                         type: 'text',
-                        text: 'Documentation index not available. Please run the scraper first.',
+                        text: 'Documentation index not available. Please wait for initial scrape to complete.',
                     }],
             };
         }
-        const results = searchDocs(index, query, limit);
+        const results = searchDocs(index, query, 5);
         if (results.length === 0) {
             return {
                 content: [{
                         type: 'text',
-                        text: `No results found for "${query}". Try different keywords or browse by category.`,
+                        text: `No results found for "${query}". Try different keywords or use BrowseOpenCodeDocs to see all available documentation.`,
                     }],
             };
         }
         const formattedResults = results.map((result, i) => {
-            const sections = result.matchedSections
-                .map(s => `  - ${s.title}`)
-                .join('\n');
-            return `### ${i + 1}. ${result.page.title}
-**URL:** ${result.page.url}
+            return `### ${i + 1}. [${result.page.title}](${result.page.url})
 **Category:** ${result.page.category}
-**Relevance:** ${result.score.toFixed(2)}
 
-${result.snippet}
-
-${sections ? `**Relevant sections:**\n${sections}` : ''}`;
+${result.snippet}`;
         }).join('\n\n---\n\n');
         return {
             content: [{
                     type: 'text',
-                    text: `# Search Results for "${query}"\n\nFound ${results.length} matching pages:\n\n${formattedResults}`,
+                    text: `# Search Results for "${query}"\n\nFound ${results.length} relevant pages:\n\n${formattedResults}`,
                 }],
         };
     });
-    // Get specific page
-    server.tool('get_opencode_doc_page', 'Get the full content of a specific OpenCode documentation page by its path.', {
-        path: z.string().describe('The doc page path (e.g., "/docs/config" or "configure/mcp-servers")'),
+    // Get specific page (Mintlify-style)
+    server.tool(TOOL_DEFINITIONS.GetOpenCodeDocPage.name, TOOL_DEFINITIONS.GetOpenCodeDocPage.description, {
+        path: z.string().describe('The documentation page path (e.g., "/docs/mcp-servers/", "/docs/config/", "/docs/agents/")'),
     }, async ({ path }) => {
         const index = getIndex();
         if (!index) {
@@ -68,12 +78,12 @@ ${sections ? `**Relevant sections:**\n${sections}` : ''}`;
             const suggestions = allPages
                 .filter(p => p.path.includes(path.split('/').pop() || ''))
                 .slice(0, 5)
-                .map(p => `  - ${p.path}: ${p.title}`)
+                .map(p => `  - ${p.path}`)
                 .join('\n');
             return {
                 content: [{
                         type: 'text',
-                        text: `Page not found: ${path}\n\nDid you mean:\n${suggestions || 'No suggestions available.'}`,
+                        text: `Page not found: ${path}\n\nAvailable pages include:\n${suggestions || 'Use BrowseOpenCodeDocs to see all pages.'}`,
                     }],
             };
         }
@@ -84,41 +94,8 @@ ${sections ? `**Relevant sections:**\n${sections}` : ''}`;
                 }],
         };
     });
-    // List pages by category
-    server.tool('list_opencode_docs_by_category', 'List all OpenCode documentation pages in a specific category.', {
-        category: z.string().describe('Category name (e.g., "Configure", "Usage", "Develop")'),
-    }, async ({ category }) => {
-        const index = getIndex();
-        if (!index) {
-            return {
-                content: [{
-                        type: 'text',
-                        text: 'Documentation index not available.',
-                    }],
-            };
-        }
-        const pages = searchByCategory(index, category);
-        if (pages.length === 0) {
-            const categories = listCategories(index);
-            return {
-                content: [{
-                        type: 'text',
-                        text: `No pages found in category "${category}".\n\nAvailable categories:\n${categories.map(c => `  - ${c}`).join('\n')}`,
-                    }],
-            };
-        }
-        const pageList = pages
-            .map(p => `- [${p.title}](${p.url})`)
-            .join('\n');
-        return {
-            content: [{
-                    type: 'text',
-                    text: `# ${category} Documentation\n\n${pageList}`,
-                }],
-        };
-    });
-    // List all categories
-    server.tool('list_opencode_doc_categories', 'List all available categories in the OpenCode documentation.', {}, async () => {
+    // Browse all docs (Mintlify-style)
+    server.tool(TOOL_DEFINITIONS.BrowseOpenCodeDocs.name, TOOL_DEFINITIONS.BrowseOpenCodeDocs.description, {}, async () => {
         const index = getIndex();
         if (!index) {
             return {
@@ -129,38 +106,17 @@ ${sections ? `**Relevant sections:**\n${sections}` : ''}`;
             };
         }
         const categories = listCategories(index);
-        const categoryInfo = categories.map(cat => {
-            const pages = searchByCategory(index, cat);
-            return `- **${cat}** (${pages.length} pages)`;
-        }).join('\n');
-        return {
-            content: [{
-                    type: 'text',
-                    text: `# OpenCode Documentation Categories\n\n${categoryInfo}\n\nUse \`list_opencode_docs_by_category\` to see pages in a specific category.`,
-                }],
-        };
-    });
-    // Browse all docs
-    server.tool('browse_opencode_docs', 'Get an overview of the entire OpenCode documentation structure.', {}, async () => {
-        const index = getIndex();
-        if (!index) {
-            return {
-                content: [{
-                        type: 'text',
-                        text: 'Documentation index not available.',
-                    }],
-            };
-        }
-        const categories = listCategories(index);
+        const allPages = listAllPages(index);
         let overview = `# OpenCode Documentation\n\n`;
         overview += `**Base URL:** ${index.baseUrl}\n`;
         overview += `**Total Pages:** ${index.pages.length}\n`;
         overview += `**Last Updated:** ${new Date(index.updatedAt).toISOString()}\n\n`;
         for (const category of categories) {
-            const pages = searchByCategory(index, category);
-            overview += `## ${category}\n\n`;
+            const pages = allPages.filter(p => p.category === category);
+            overview += `## ${category} (${pages.length} pages)\n\n`;
             for (const page of pages) {
-                overview += `- [${page.title}](${page.url})\n`;
+                const fullPage = index.pages.find(p => p.path === page.path);
+                overview += `- [${page.title}](${fullPage?.url || page.path})\n`;
             }
             overview += '\n';
         }
