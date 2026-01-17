@@ -1,3 +1,5 @@
+<img width="15712" height="3776" alt="logo-tshirt (5)" src="https://github.com/user-attachments/assets/bb199bd6-3958-4300-bb5f-3e01ca64867a" />
+
 # OpenCode Docs MCP Server
 
 [![npm version](https://badge.fury.io/js/opencode-docs-mcp.svg)](https://www.npmjs.com/package/opencode-docs-mcp)
